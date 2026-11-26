@@ -1,9 +1,5 @@
 ﻿# VSA-LAB4 — Hash Tables
 
-Verilənlərin strukturu və alqoritmlər – 1
-
-Qarabağ Universiteti — Laboratoriya işi №4
-
 ## Məqsəd
 
 C++ dilində həş cədvəllərinin qurulması, kolliziyaların
