@@ -11,19 +11,21 @@
 #include <string>
 #include <vector>
 
+using namespace std;
+
 namespace {
-void require(bool condition, const std::string& message = "Check failed.") {
-    if (!condition) throw std::runtime_error(message);
+void require(bool condition, const string& message = "Check failed.") {
+    if (!condition) throw runtime_error(message);
 }
 template <typename Exception, typename Function>
 void expectThrows(Function action) {
     try { action(); } catch (const Exception&) { return; }
-    throw std::runtime_error("Expected exception was not thrown.");
+    throw runtime_error("Expected exception was not thrown.");
 }
-std::vector<std::string> keysAt(std::size_t capacity, std::size_t bucket, std::size_t count) {
-    std::vector<std::string> keys;
-    for (std::size_t i = 0; i < 1000000 && keys.size() < count; ++i) {
-        const auto key = "192.0.2." + std::to_string(i);
+vector<string> keysAt(size_t capacity, size_t bucket, size_t count) {
+    vector<string> keys;
+    for (size_t i = 0; i < 1000000 && keys.size() < count; ++i) {
+        const auto key = "192.0.2." + to_string(i);
         if (HashUtils::moduloCompress(HashUtils::polynomialHash(key), capacity) == bucket) {
             keys.push_back(key);
         }
@@ -32,7 +34,7 @@ std::vector<std::string> keysAt(std::size_t capacity, std::size_t bucket, std::s
     return keys;
 }
 void fill(OpenAddressingHash& table, int count) {
-    for (int i = 0; i < count; ++i) require(table.insert("key-" + std::to_string(i)));
+    for (int i = 0; i < count; ++i) require(table.insert("key-" + to_string(i)));
 }
 void testEmpty() {
     OpenAddressingHash table;
@@ -86,11 +88,11 @@ void testLinearWraparound() {
     require(table.maxClusterLength() == 3);
 }
 void testQuadraticSequence() {
-    const std::size_t positions[] = {0, 1, 4, 9, 5, 3};
+    const size_t positions[] = {0, 1, 4, 9, 5, 3};
     const auto query = keysAt(11, 0, 2)[1];
-    for (std::size_t prefix = 0; prefix <= 6; ++prefix) {
+    for (size_t prefix = 0; prefix <= 6; ++prefix) {
         OpenAddressingHash table(11, ProbingMode::QUADRATIC, 37, false);
-        for (std::size_t i = 0; i < prefix; ++i) {
+        for (size_t i = 0; i < prefix; ++i) {
             require(table.insert(keysAt(11, positions[i], 1)[0]));
         }
         int probes = -1;
@@ -104,7 +106,7 @@ void testQuadraticCollisions() {
     const auto keys = keysAt(11, 0, 6);
     for (const auto& key : keys) require(table.insert(key));
     require(table.maxClusterLength() == 3 && table.collisionCount() == 15);
-    for (std::size_t i = 0; i < keys.size(); ++i) {
+    for (size_t i = 0; i < keys.size(); ++i) {
         int probes = 0;
         require(table.contains(keys[i], probes) && probes == static_cast<int>(i + 1));
     }
@@ -112,7 +114,7 @@ void testQuadraticCollisions() {
 void testQuadraticTermination() {
     OpenAddressingHash table(11, ProbingMode::QUADRATIC, 37, false);
     const auto keys = keysAt(11, 0, 7);
-    for (std::size_t i = 0; i < 6; ++i) table.insert(keys[i]);
+    for (size_t i = 0; i < 6; ++i) table.insert(keys[i]);
     int probes = 0;
     require(!table.contains(keys[6], probes) && probes == 6);
     require(!table.insert(keys[6]) && table.size() == 6 && table.capacity() == 11);
@@ -170,7 +172,7 @@ void testDuplicateAfterTombstone() {
 void testActiveCount() {
     OpenAddressingHash table;
     fill(table, 20);
-    for (int i = 0; i < 10; ++i) require(table.remove("key-" + std::to_string(i)));
+    for (int i = 0; i < 10; ++i) require(table.remove("key-" + to_string(i)));
     require(table.size() == 10);
 }
 void testDeletedCount() {
@@ -186,8 +188,8 @@ void testDeletedCount() {
 void testLoadFactor() {
     OpenAddressingHash table(11, ProbingMode::LINEAR, 37, false);
     fill(table, 3); table.remove("key-0");
-    require(std::abs(table.loadFactor() - 2.0 / 11) < 1e-12);
-    require(std::abs(table.effectiveOccupancy() - 3.0 / 11) < 1e-12);
+    require(abs(table.loadFactor() - 2.0 / 11) < 1e-12);
+    require(abs(table.effectiveOccupancy() - 3.0 / 11) < 1e-12);
 }
 void testExpansionThreshold() {
     for (auto mode : {ProbingMode::LINEAR, ProbingMode::QUADRATIC}) {
@@ -214,15 +216,15 @@ void testRehashPreservesKeys() {
     for (auto mode : {ProbingMode::LINEAR, ProbingMode::QUADRATIC}) {
         OpenAddressingHash table(3, mode);
         fill(table, 500);
-        for (int i = 0; i < 500; ++i) require(table.contains("key-" + std::to_string(i)));
+        for (int i = 0; i < 500; ++i) require(table.contains("key-" + to_string(i)));
         require(table.size() == 500 && table.loadFactor() <= 0.5);
     }
 }
 void testRehashCleansTombstones() {
     for (auto mode : {ProbingMode::LINEAR, ProbingMode::QUADRATIC}) {
         OpenAddressingHash table(11, mode);
-        std::vector<std::string> keys;
-        for (std::size_t i = 0; i < 5; ++i) {
+        vector<string> keys;
+        for (size_t i = 0; i < 5; ++i) {
             keys.push_back(keysAt(11, i, 1)[0]);
             table.insert(keys.back());
         }
@@ -232,7 +234,7 @@ void testRehashCleansTombstones() {
         table.insert(keysAt(11, 9, 1)[0]);
         require(table.capacity() == 23 && table.deletedCount() == 0 && table.size() == 6);
         require(!table.contains(keys[0]));
-        for (std::size_t i = 1; i < keys.size(); ++i) require(table.contains(keys[i]));
+        for (size_t i = 1; i < keys.size(); ++i) require(table.contains(keys[i]));
     }
 }
 void testFixedLinear() {
@@ -243,23 +245,23 @@ void testFixedLinear() {
 }
 void testFixedQuadratic() {
     OpenAddressingHash table(11, ProbingMode::QUADRATIC, 37, false);
-    for (std::size_t i = 0; i < 11; ++i) require(table.insert(keysAt(11, i, 1)[0]));
+    for (size_t i = 0; i < 11; ++i) require(table.insert(keysAt(11, i, 1)[0]));
     require(table.capacity() == 11 && table.loadFactor() == 1);
     require(!table.insert("overflow"));
 }
 void testFailedInsertPreservesState() {
     OpenAddressingHash table(7, ProbingMode::QUADRATIC, 37, false);
     const auto keys = keysAt(7, 0, 5);
-    for (std::size_t i = 0; i < 4; ++i) table.insert(keys[i]);
+    for (size_t i = 0; i < 4; ++i) table.insert(keys[i]);
     const auto collisions = table.collisionCount();
     require(!table.insert(keys[4]) && table.size() == 4 && table.capacity() == 7);
     require(table.deletedCount() == 0 && table.collisionCount() == collisions);
-    for (std::size_t i = 0; i < 4; ++i) require(table.contains(keys[i]));
+    for (size_t i = 0; i < 4; ++i) require(table.contains(keys[i]));
 }
 void testProbeCounting() {
     OpenAddressingHash table(7, ProbingMode::LINEAR, 37, false);
     const auto keys = keysAt(7, 0, 4);
-    for (std::size_t i = 0; i < 3; ++i) table.insert(keys[i]);
+    for (size_t i = 0; i < 3; ++i) table.insert(keys[i]);
     int probes = -1, comparisons = -1;
     require(table.contains(keys[2], probes, comparisons) && probes == 3 && comparisons == 3);
     table.remove(keys[0]);
@@ -269,7 +271,7 @@ void testProbeCounting() {
 void testCollisionStatistics() {
     OpenAddressingHash table(7, ProbingMode::LINEAR, 37, false);
     const auto keys = keysAt(7, 0, 4);
-    for (std::size_t i = 0; i < 3; ++i) table.insert(keys[i]);
+    for (size_t i = 0; i < 3; ++i) table.insert(keys[i]);
     require(table.collisionCount() == 3);
     table.insert(keys[2]); table.contains(keys[0]); table.remove(keys[0]); table.remove("missing");
     require(table.collisionCount() == 3);
@@ -278,7 +280,7 @@ void testCollisionStatistics() {
 }
 void testMaximumCluster() {
     OpenAddressingHash table(11, ProbingMode::LINEAR, 37, false);
-    for (const std::size_t slot : {1U, 2U, 3U, 7U}) table.insert(keysAt(11, slot, 1)[0]);
+    for (const size_t slot : {1U, 2U, 3U, 7U}) table.insert(keysAt(11, slot, 1)[0]);
     require(table.maxClusterLength() == 3);
     table.remove(keysAt(11, 2, 1)[0]);
     require(table.maxClusterLength() == 3); // Tombstone remains occupied.
@@ -286,7 +288,7 @@ void testMaximumCluster() {
 void testCircularCluster() {
     for (auto mode : {ProbingMode::LINEAR, ProbingMode::QUADRATIC}) {
         OpenAddressingHash table(7, mode, 37, false);
-        for (const std::size_t slot : {5U, 6U, 0U, 1U}) table.insert(keysAt(7, slot, 1)[0]);
+        for (const size_t slot : {5U, 6U, 0U, 1U}) table.insert(keysAt(7, slot, 1)[0]);
         require(table.maxClusterLength() == 4);
     }
 }
@@ -294,8 +296,8 @@ void testThousands() {
     for (auto mode : {ProbingMode::LINEAR, ProbingMode::QUADRATIC}) {
         OpenAddressingHash table(11, mode);
         fill(table, 5000);
-        for (int i = 0; i < 5000; ++i) require(table.contains("key-" + std::to_string(i)));
-        for (int i = 0; i < 5000; ++i) require(table.remove("key-" + std::to_string(i)));
+        for (int i = 0; i < 5000; ++i) require(table.contains("key-" + to_string(i)));
+        for (int i = 0; i < 5000; ++i) require(table.remove("key-" + to_string(i)));
         require(table.size() == 0 && table.deletedCount() == 5000);
     }
 }
@@ -305,17 +307,17 @@ void testRepeatedOperations() {
         for (int round = 0; round < 8; ++round) {
             fill(table, 120);
             for (int i = 0; i < 120; ++i) {
-                require(!table.insert("key-" + std::to_string(i)));
-                require(table.remove("key-" + std::to_string(i)));
+                require(!table.insert("key-" + to_string(i)));
+                require(table.remove("key-" + to_string(i)));
             }
             require(table.size() == 0);
         }
     }
 }
 void testInvalidArguments() {
-    expectThrows<std::invalid_argument>([] { OpenAddressingHash table(0); });
-    expectThrows<std::invalid_argument>([] { OpenAddressingHash table(11, static_cast<ProbingMode>(99)); });
-    expectThrows<std::length_error>([] { OpenAddressingHash table(std::numeric_limits<std::size_t>::max()); });
+    expectThrows<invalid_argument>([] { OpenAddressingHash table(0); });
+    expectThrows<invalid_argument>([] { OpenAddressingHash table(11, static_cast<ProbingMode>(99)); });
+    expectThrows<length_error>([] { OpenAddressingHash table(numeric_limits<size_t>::max()); });
     OpenAddressingHash one(1), composite(10);
     require(one.capacity() == 2 && composite.capacity() == 11);
 }
@@ -323,8 +325,8 @@ void testTombstoneWithoutEmpty() {
     for (auto mode : {ProbingMode::LINEAR, ProbingMode::QUADRATIC}) {
         OpenAddressingHash table(7, mode, 37, false);
         const auto keys = keysAt(7, 0, 8);
-        const std::size_t reachable = mode == ProbingMode::LINEAR ? 7 : 4;
-        for (std::size_t i = 0; i < reachable; ++i) require(table.insert(keys[i]));
+        const size_t reachable = mode == ProbingMode::LINEAR ? 7 : 4;
+        for (size_t i = 0; i < reachable; ++i) require(table.insert(keys[i]));
         require(table.remove(keys[0]));
         require(!table.insert(keys[reachable - 1]) && table.deletedCount() == 1);
         require(table.insert(keys[7]) && table.deletedCount() == 0);
@@ -335,7 +337,7 @@ void testFullAndDeletedCluster() {
     OpenAddressingHash table(7, ProbingMode::LINEAR, 37, false);
     fill(table, 7);
     require(table.maxClusterLength() == 7);
-    for (int i = 0; i < 7; ++i) table.remove("key-" + std::to_string(i));
+    for (int i = 0; i < 7; ++i) table.remove("key-" + to_string(i));
     require(table.maxClusterLength() == 7 && table.loadFactor() == 0 && table.effectiveOccupancy() == 1);
     int probes = 0;
     require(!table.contains("missing", probes) && probes == 7);
@@ -343,8 +345,8 @@ void testFullAndDeletedCluster() {
 void testGenericKeysAndBases() {
     for (auto mode : {ProbingMode::LINEAR, ProbingMode::QUADRATIC}) {
         OpenAddressingHash table(11, mode, 1);
-        for (const auto& key : {std::string(), std::string("AB"), std::string("BA"),
-                               std::string("a\0b", 3), std::string(10000, 'x')}) {
+        for (const auto& key : {string(), string("AB"), string("BA"),
+                               string("a\0b", 3), string(10000, 'x')}) {
             require(table.insert(key) && table.contains(key) && !table.insert(key));
         }
         require(table.size() == 5);
@@ -365,10 +367,10 @@ void testRehashCollisionAccounting() {
 void testSeededReference() {
     for (auto mode : {ProbingMode::LINEAR, ProbingMode::QUADRATIC}) {
         OpenAddressingHash table(3, mode);
-        std::set<std::string> reference;
-        std::mt19937 random(42);
+        set<string> reference;
+        mt19937 random(42);
         for (int i = 0; i < 10000; ++i) {
-            const auto key = std::to_string(random() % 600);
+            const auto key = to_string(random() % 600);
             switch (random() % 3) {
             case 0: require(table.insert(key) == reference.insert(key).second); break;
             case 1: require(table.remove(key) == (reference.erase(key) != 0)); break;
@@ -408,11 +410,11 @@ int main() {
     };
     int failures = 0;
     for (const auto& test : cases) {
-        try { test.run(); std::cout << "[PASS] " << test.name << '\n'; }
-        catch (const std::exception& error) { ++failures; std::cerr << "[FAIL] " << test.name << ": " << error.what() << '\n'; }
-        catch (...) { ++failures; std::cerr << "[FAIL] " << test.name << ": unknown exception\n"; }
+        try { test.run(); cout << "[PASS] " << test.name << '\n'; }
+        catch (const exception& error) { ++failures; cerr << "[FAIL] " << test.name << ": " << error.what() << '\n'; }
+        catch (...) { ++failures; cerr << "[FAIL] " << test.name << ": unknown exception\n"; }
     }
     const auto count = sizeof(cases) / sizeof(cases[0]);
-    std::cout << count - static_cast<std::size_t>(failures) << '/' << count << " tests passed.\n";
+    cout << count - static_cast<size_t>(failures) << '/' << count << " tests passed.\n";
     return failures == 0 ? 0 : 1;
 }

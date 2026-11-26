@@ -9,6 +9,8 @@
 #include <string>
 #include <vector>
 
+using namespace std;
+
 enum class CompressionMode {
     MODULO,
     MAD
@@ -16,35 +18,35 @@ enum class CompressionMode {
 
 class SeparateChainingHash {
 public:
-    explicit SeparateChainingHash(std::size_t initialCapacity = 11,
+    explicit SeparateChainingHash(size_t initialCapacity = 11,
         CompressionMode mode = CompressionMode::MODULO,
-        std::uint64_t polynomialBase = 37, bool autoResize = true);
+        uint64_t polynomialBase = 37, bool autoResize = true);
 
     bool insert(const Book& b);
-    bool remove(const std::string& isbn);
+    bool remove(const string& isbn);
 
     // Pointers are invalidated by removal of that book, rehash, assignment,
     // or destruction of the table. Reacquire after any mutation.
-    const Book* findByISBN(const std::string& isbn) const;
+    const Book* findByISBN(const string& isbn) const;
     // A probe is one comparison against a stored ISBN; empty chains cost zero.
-    const Book* findByISBN(const std::string& isbn, int& probesOut) const;
+    const Book* findByISBN(const string& isbn, int& probesOut) const;
 
     double loadFactor() const;
-    std::size_t size() const;
-    std::size_t capacity() const;
-    std::size_t maxChainLength() const;
-    std::uint64_t collisionCount() const;
+    size_t size() const;
+    size_t capacity() const;
+    size_t maxChainLength() const;
+    uint64_t collisionCount() const;
 
 private:
-    std::size_t bucketIndex(const std::string& isbn, std::size_t targetCapacity) const;
-    void rehash(std::size_t newCapacity);
+    size_t bucketIndex(const string& isbn, size_t targetCapacity) const;
+    void rehash(size_t newCapacity);
 
-    std::vector<std::list<Book>> buckets_;
-    std::size_t minimumCapacity_;
+    vector<list<Book>> buckets_;
+    size_t minimumCapacity_;
     CompressionMode mode_;
-    std::uint64_t polynomialBase_;
+    uint64_t polynomialBase_;
     bool autoResize_;
-    std::size_t elementCount_ = 0;
-    std::uint64_t collisionCount_ = 0;
+    size_t elementCount_ = 0;
+    uint64_t collisionCount_ = 0;
     HashUtils::MadCompressor mad_;
 };

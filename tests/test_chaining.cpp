@@ -11,9 +11,11 @@
 #include <stdexcept>
 #include <string>
 
+using namespace std;
+
 namespace {
-void require(bool condition, const std::string& message) {
-    if (!condition) throw std::runtime_error(message);
+void require(bool condition, const string& message) {
+    if (!condition) throw runtime_error(message);
 }
 
 template <typename Exception, typename Function>
@@ -23,10 +25,10 @@ void expectThrows(Function action) {
     } catch (const Exception&) {
         return;
     }
-    throw std::runtime_error("Expected exception was not thrown.");
+    throw runtime_error("Expected exception was not thrown.");
 }
 
-Book makeBook(const std::string& isbn, bool available = true) {
+Book makeBook(const string& isbn, bool available = true) {
     return {isbn, "Title " + isbn, "Author " + isbn, available};
 }
 
@@ -39,7 +41,7 @@ void checkBook(const Book* actual, const Book& expected) {
 
 void fill(SeparateChainingHash& table, int count) {
     for (int i = 0; i < count; ++i) {
-        require(table.insert(makeBook(std::to_string(i), i % 2 == 0)), "Insert failed.");
+        require(table.insert(makeBook(to_string(i), i % 2 == 0)), "Insert failed.");
     }
 }
 
@@ -96,7 +98,7 @@ void testMissingRemoval() {
 void testLoadFactor() {
     SeparateChainingHash table(11, CompressionMode::MODULO, 37, false);
     fill(table, 3);
-    require(std::abs(table.loadFactor() - 3.0 / 11.0) < 1e-12, "Integer division.");
+    require(abs(table.loadFactor() - 3.0 / 11.0) < 1e-12, "Integer division.");
 }
 
 void testModulo() {
@@ -125,10 +127,10 @@ void testBaseThirtySeven() {
 }
 
 void testPrimes() {
-    for (const std::size_t value : {2U, 3U, 11U, 97U, 10007U}) {
+    for (const size_t value : {2U, 3U, 11U, 97U, 10007U}) {
         require(HashUtils::isPrime(value), "Prime rejected.");
     }
-    for (const std::size_t value : {0U, 1U, 4U, 9U, 25U, 49U, 10000U}) {
+    for (const size_t value : {0U, 1U, 4U, 9U, 25U, 49U, 10000U}) {
         require(!HashUtils::isPrime(value), "Composite accepted.");
     }
 }
@@ -188,7 +190,7 @@ void testExpansionPrime() {
     SeparateChainingHash table(3);
     fill(table, 3);
     require(table.capacity() == 7, "3 must grow to 7.");
-    for (int i = 3; i < 7; ++i) table.insert(makeBook(std::to_string(i)));
+    for (int i = 3; i < 7; ++i) table.insert(makeBook(to_string(i)));
     require(table.capacity() == 17, "7 must grow to 17.");
 }
 
@@ -197,7 +199,7 @@ void testExpansionPreservesBooks() {
         SeparateChainingHash table(3, mode);
         fill(table, 100);
         for (int i = 0; i < 100; ++i) {
-            checkBook(table.findByISBN(std::to_string(i)), makeBook(std::to_string(i), i % 2 == 0));
+            checkBook(table.findByISBN(to_string(i)), makeBook(to_string(i), i % 2 == 0));
         }
         require(table.size() == 100, "Rehash changed size.");
     }
@@ -206,7 +208,7 @@ void testExpansionPreservesBooks() {
 void testShrinkThreshold() {
     SeparateChainingHash table;
     fill(table, 11);
-    for (int i = 0; i < 5; ++i) table.remove(std::to_string(i));
+    for (int i = 0; i < 5; ++i) table.remove(to_string(i));
     require(table.capacity() == 23 && table.size() == 6, "Shrank too early.");
     table.remove("5");
     require(table.capacity() == 11 && table.size() == 5, "Did not shrink.");
@@ -216,10 +218,10 @@ void testShrinkPreservesBooks() {
     for (auto mode : {CompressionMode::MODULO, CompressionMode::MAD}) {
         SeparateChainingHash table(11, mode);
         fill(table, 11);
-        for (int i = 0; i < 6; ++i) table.remove(std::to_string(i));
+        for (int i = 0; i < 6; ++i) table.remove(to_string(i));
         require(table.capacity() == 11, "No shrink.");
         for (int i = 6; i < 11; ++i) {
-            checkBook(table.findByISBN(std::to_string(i)), makeBook(std::to_string(i), i % 2 == 0));
+            checkBook(table.findByISBN(to_string(i)), makeBook(to_string(i), i % 2 == 0));
         }
     }
 }
@@ -228,7 +230,7 @@ void testMinimumCapacity() {
     SeparateChainingHash table(10);
     require(table.capacity() == 11, "Initial composite not normalized.");
     fill(table, 100);
-    for (int i = 0; i < 100; ++i) table.remove(std::to_string(i));
+    for (int i = 0; i < 100; ++i) table.remove(to_string(i));
     require(table.size() == 0 && table.capacity() == 11, "Minimum violated.");
     SeparateChainingHash tiny(1);
     require(tiny.capacity() == 2, "One must normalize to two.");
@@ -240,8 +242,8 @@ void testFixedCapacity() {
         fill(table, 30);
         require(table.capacity() == 3 && table.loadFactor() == 10.0, "Fixed growth.");
         for (int i = 0; i < 30; ++i) {
-            checkBook(table.findByISBN(std::to_string(i)), makeBook(std::to_string(i), i % 2 == 0));
-            require(table.remove(std::to_string(i)), "Fixed removal.");
+            checkBook(table.findByISBN(to_string(i)), makeBook(to_string(i), i % 2 == 0));
+            require(table.remove(to_string(i)), "Fixed removal.");
         }
         require(table.capacity() == 3, "Fixed shrink.");
         SeparateChainingHash benchmark(10007, mode, 37, false);
@@ -272,10 +274,10 @@ void testProbes() {
 }
 
 // Independent addition-and-doubling oracle; p is at most 32 bits here.
-std::uint64_t referenceMad(std::uint64_t hash, std::uint64_t a,
-                           std::uint64_t b, std::uint64_t p, std::size_t capacity) {
-    std::uint64_t product = 0;
-    std::uint64_t term = hash % p;
+uint64_t referenceMad(uint64_t hash, uint64_t a,
+                           uint64_t b, uint64_t p, size_t capacity) {
+    uint64_t product = 0;
+    uint64_t term = hash % p;
     while (a != 0) {
         if (a % 2 != 0) product = (product + term) % p;
         term = (term + term) % p;
@@ -286,10 +288,10 @@ std::uint64_t referenceMad(std::uint64_t hash, std::uint64_t a,
 
 void testLargeMad() {
     const auto p = HashUtils::defaultMadPrime;
-    const auto maximum = std::numeric_limits<std::uint64_t>::max();
+    const auto maximum = numeric_limits<uint64_t>::max();
     require(HashUtils::madCompress(maximum, 97, p - 1, p - 1, p) ==
             (p - 25) % 97, "Maximum hash arithmetic.");
-    std::mt19937_64 random(20261125);
+    mt19937_64 random(20261125);
     for (int i = 0; i < 1000; ++i) {
         const auto hash = random();
         const auto a = 1 + random() % (p - 1);
@@ -304,32 +306,32 @@ void testThousandsOfKeys() {
         SeparateChainingHash table(11, mode);
         fill(table, 5000);
         for (int i = 0; i < 5000; ++i) {
-            checkBook(table.findByISBN(std::to_string(i)), makeBook(std::to_string(i), i % 2 == 0));
+            checkBook(table.findByISBN(to_string(i)), makeBook(to_string(i), i % 2 == 0));
         }
         for (int i = 0; i < 5000; ++i) {
-            require(table.remove(std::to_string(i)), "Bulk removal.");
+            require(table.remove(to_string(i)), "Bulk removal.");
         }
         require(table.size() == 0 && table.capacity() == 11, "Bulk final state.");
     }
 }
 
 void testInvalidParameters() {
-    expectThrows<std::invalid_argument>([] { SeparateChainingHash table(0); });
-    expectThrows<std::invalid_argument>([] { SeparateChainingHash table(11, static_cast<CompressionMode>(99)); });
-    expectThrows<std::invalid_argument>([] { HashUtils::moduloCompress(10, 0); });
-    expectThrows<std::invalid_argument>([] { HashUtils::madCompress(10, 0, 1, 0, 13); });
-    expectThrows<std::invalid_argument>([] { HashUtils::madCompress(10, 13, 1, 0, 13); });
-    expectThrows<std::invalid_argument>([] { HashUtils::madCompress(10, 17, 1, 0, 13); });
-    expectThrows<std::invalid_argument>([] { HashUtils::madCompress(10, 5, 1, 0, 9); });
-    expectThrows<std::invalid_argument>([] { HashUtils::madCompress(10, 5, 0, 0, 13); });
-    expectThrows<std::invalid_argument>([] { HashUtils::madCompress(10, 5, 13, 0, 13); });
-    expectThrows<std::invalid_argument>([] { HashUtils::madCompress(10, 5, 1, 13, 13); });
-    expectThrows<std::invalid_argument>([] { HashUtils::madCompress(10, 1, 1, 0, 1); });
-    expectThrows<std::invalid_argument>([] {
-        HashUtils::madCompress(10, 5, 1, 0, std::numeric_limits<std::uint64_t>::max());
+    expectThrows<invalid_argument>([] { SeparateChainingHash table(0); });
+    expectThrows<invalid_argument>([] { SeparateChainingHash table(11, static_cast<CompressionMode>(99)); });
+    expectThrows<invalid_argument>([] { HashUtils::moduloCompress(10, 0); });
+    expectThrows<invalid_argument>([] { HashUtils::madCompress(10, 0, 1, 0, 13); });
+    expectThrows<invalid_argument>([] { HashUtils::madCompress(10, 13, 1, 0, 13); });
+    expectThrows<invalid_argument>([] { HashUtils::madCompress(10, 17, 1, 0, 13); });
+    expectThrows<invalid_argument>([] { HashUtils::madCompress(10, 5, 1, 0, 9); });
+    expectThrows<invalid_argument>([] { HashUtils::madCompress(10, 5, 0, 0, 13); });
+    expectThrows<invalid_argument>([] { HashUtils::madCompress(10, 5, 13, 0, 13); });
+    expectThrows<invalid_argument>([] { HashUtils::madCompress(10, 5, 1, 13, 13); });
+    expectThrows<invalid_argument>([] { HashUtils::madCompress(10, 1, 1, 0, 1); });
+    expectThrows<invalid_argument>([] {
+        HashUtils::madCompress(10, 5, 1, 0, numeric_limits<uint64_t>::max());
     });
-    expectThrows<std::invalid_argument>([] {
-        SeparateChainingHash table(static_cast<std::size_t>(HashUtils::defaultMadPrime), CompressionMode::MAD);
+    expectThrows<invalid_argument>([] {
+        SeparateChainingHash table(static_cast<size_t>(HashUtils::defaultMadPrime), CompressionMode::MAD);
     });
 }
 
@@ -339,8 +341,8 @@ void testRepeatedRehash() {
         for (int round = 0; round < 8; ++round) {
             fill(table, 120);
             for (int i = 0; i < 120; ++i) {
-                require(!table.insert(makeBook(std::to_string(i))), "Repeated duplicate.");
-                require(table.remove(std::to_string(i)), "Repeated removal.");
+                require(!table.insert(makeBook(to_string(i))), "Repeated duplicate.");
+                require(table.remove(to_string(i)), "Repeated removal.");
             }
             require(table.size() == 0 && table.capacity() == 3, "Repeated rehash state.");
         }
@@ -353,14 +355,14 @@ void testShrinkPrimeRules() {
     require(HashUtils::shrinkPrimeCapacity(12, 2) == 5, "Tie must choose five.");
     require(HashUtils::shrinkPrimeCapacity(11, 7) == 7, "Minimum clamp.");
     require(HashUtils::shrinkPrimeCapacity(11, 11) == 11, "No shrink.");
-    expectThrows<std::invalid_argument>([] { HashUtils::shrinkPrimeCapacity(11, 4); });
-    expectThrows<std::invalid_argument>([] { HashUtils::shrinkPrimeCapacity(3, 5); });
-    for (std::size_t current = 3; current < 200; ++current) {
+    expectThrows<invalid_argument>([] { HashUtils::shrinkPrimeCapacity(11, 4); });
+    expectThrows<invalid_argument>([] { HashUtils::shrinkPrimeCapacity(3, 5); });
+    for (size_t current = 3; current < 200; ++current) {
         const auto chosen = HashUtils::shrinkPrimeCapacity(current, 2);
-        const auto distance = [current](std::size_t prime) {
+        const auto distance = [current](size_t prime) {
             return prime * 2 > current ? prime * 2 - current : current - prime * 2;
         };
-        for (std::size_t prime = 2; prime < current; ++prime) {
+        for (size_t prime = 2; prime < current; ++prime) {
             if (HashUtils::isPrime(prime)) {
                 require(distance(chosen) <= distance(prime), "Not nearest prime.");
                 if (distance(chosen) == distance(prime)) require(chosen <= prime, "Tie rule.");
@@ -370,16 +372,16 @@ void testShrinkPrimeRules() {
 }
 
 void testUnsignedAndOverflow() {
-    const std::string bytes(1, static_cast<char>(0xFF));
+    const string bytes(1, static_cast<char>(0xFF));
     require(HashUtils::polynomialHash(bytes) == 255, "Signed character.");
-    const auto maximum = std::numeric_limits<std::uint64_t>::max();
+    const auto maximum = numeric_limits<uint64_t>::max();
     require(HashUtils::polynomialHash("AB", maximum) == 1, "Unsigned wraparound.");
     require(HashUtils::polynomialHash("ABC", 0) == 67, "Base zero convention.");
-    expectThrows<std::overflow_error>([] {
-        HashUtils::nextPrime(std::numeric_limits<std::size_t>::max());
+    expectThrows<overflow_error>([] {
+        HashUtils::nextPrime(numeric_limits<size_t>::max());
     });
-    expectThrows<std::overflow_error>([] {
-        HashUtils::nextPrime(std::numeric_limits<std::size_t>::max() - 1);
+    expectThrows<overflow_error>([] {
+        HashUtils::nextPrime(numeric_limits<size_t>::max() - 1);
     });
 }
 
@@ -406,8 +408,8 @@ void testRehashCollisionAccounting() {
 
 void testTextKeys() {
     SeparateChainingHash table;
-    for (const auto& key : {std::string(), std::string("001"), std::string("1"),
-                           std::string("a\0b", 3), std::string(10000, 'x')}) {
+    for (const auto& key : {string(), string("001"), string("1"),
+                           string("a\0b", 3), string(10000, 'x')}) {
         require(table.insert(makeBook(key)), "Text key rejected.");
         checkBook(table.findByISBN(key), makeBook(key));
         require(!table.insert(makeBook(key)), "Text duplicate.");
@@ -418,10 +420,10 @@ void testTextKeys() {
 void testRandomizedReference() {
     for (auto mode : {CompressionMode::MODULO, CompressionMode::MAD}) {
         SeparateChainingHash table(3, mode);
-        std::map<std::string, Book> reference; // Ordered tree, not a hash table.
-        std::mt19937 random(42);
+        map<string, Book> reference; // Ordered tree, not a hash table.
+        mt19937 random(42);
         for (int step = 0; step < 6000; ++step) {
-            const auto key = std::to_string(random() % 400);
+            const auto key = to_string(random() % 400);
             const Book book = makeBook(key, step % 2 == 0);
             switch (random() % 3) {
             case 0:
@@ -492,17 +494,17 @@ int main() {
     for (const auto& test : cases) {
         try {
             test.run();
-            std::cout << "[PASS] " << test.name << '\n';
-        } catch (const std::exception& error) {
+            cout << "[PASS] " << test.name << '\n';
+        } catch (const exception& error) {
             ++failures;
-            std::cerr << "[FAIL] " << test.name << ": " << error.what() << '\n';
+            cerr << "[FAIL] " << test.name << ": " << error.what() << '\n';
         } catch (...) {
             ++failures;
-            std::cerr << "[FAIL] " << test.name << ": unknown exception\n";
+            cerr << "[FAIL] " << test.name << ": unknown exception\n";
         }
     }
     const auto count = sizeof(cases) / sizeof(cases[0]);
-    std::cout << count - static_cast<std::size_t>(failures) << '/' << count << " tests passed.\n";
+    cout << count - static_cast<size_t>(failures) << '/' << count << " tests passed.\n";
     return failures == 0 ? 0 : 1;
 }
 

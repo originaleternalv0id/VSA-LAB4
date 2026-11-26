@@ -4,35 +4,37 @@
 #include <limits>
 #include <stdexcept>
 
+using namespace std;
+
 namespace {
-std::size_t normalizedCapacity(std::size_t requested, CompressionMode mode) {
+size_t normalizedCapacity(size_t requested, CompressionMode mode) {
     if (requested == 0) {
-        throw std::invalid_argument("Initial capacity must be positive.");
+        throw invalid_argument("Initial capacity must be positive.");
     }
     if (mode != CompressionMode::MODULO && mode != CompressionMode::MAD) {
-        throw std::invalid_argument("Unknown compression mode.");
+        throw invalid_argument("Unknown compression mode.");
     }
     if (mode == CompressionMode::MAD && requested >= HashUtils::defaultMadPrime) {
-        throw std::invalid_argument("MAD capacity must be below the fixed prime.");
+        throw invalid_argument("MAD capacity must be below the fixed prime.");
     }
     const auto result = HashUtils::isPrime(requested)
         ? requested : HashUtils::nextPrime(requested);
     if (mode == CompressionMode::MAD && result >= HashUtils::defaultMadPrime) {
-        throw std::invalid_argument("Normalized MAD capacity must be below p.");
+        throw invalid_argument("Normalized MAD capacity must be below p.");
     }
     return result;
 }
 }
 
-SeparateChainingHash::SeparateChainingHash(std::size_t initialCapacity,
-    CompressionMode mode, std::uint64_t polynomialBase, bool autoResize)
+SeparateChainingHash::SeparateChainingHash(size_t initialCapacity,
+    CompressionMode mode, uint64_t polynomialBase, bool autoResize)
     : buckets_(normalizedCapacity(initialCapacity, mode)),
       minimumCapacity_(buckets_.size()), mode_(mode),
       polynomialBase_(polynomialBase), autoResize_(autoResize),
       mad_(HashUtils::defaultMadA, HashUtils::defaultMadB, HashUtils::defaultMadPrime) {}
 
-std::size_t SeparateChainingHash::bucketIndex(
-    const std::string& isbn, std::size_t targetCapacity) const {
+size_t SeparateChainingHash::bucketIndex(
+    const string& isbn, size_t targetCapacity) const {
     const auto hash = HashUtils::polynomialHash(isbn, polynomialBase_);
     return mode_ == CompressionMode::MODULO
         ? HashUtils::moduloCompress(hash, targetCapacity)
@@ -48,15 +50,15 @@ bool SeparateChainingHash::insert(const Book& b) {
         }
     }
     const bool collided = !chain.empty();
-    if (collided && collisionCount_ == std::numeric_limits<std::uint64_t>::max()) {
-        throw std::overflow_error("Collision counter exhausted.");
+    if (collided && collisionCount_ == numeric_limits<uint64_t>::max()) {
+        throw overflow_error("Collision counter exhausted.");
     }
     chain.push_back(b);
     ++elementCount_;
     try {
         if (autoResize_ && elementCount_ >= capacity()) {
-            if (capacity() > std::numeric_limits<std::size_t>::max() / 2) {
-                throw std::overflow_error("Cannot double table capacity.");
+            if (capacity() > numeric_limits<size_t>::max() / 2) {
+                throw overflow_error("Cannot double table capacity.");
             }
             rehash(HashUtils::nextPrime(2 * capacity()));
         }
@@ -72,7 +74,7 @@ bool SeparateChainingHash::insert(const Book& b) {
     return true;
 }
 
-bool SeparateChainingHash::remove(const std::string& isbn) {
+bool SeparateChainingHash::remove(const string& isbn) {
     auto& chain = buckets_[bucketIndex(isbn, capacity())];
     for (auto it = chain.begin(); it != chain.end(); ++it) {
         if (it->isbn == isbn) {
@@ -89,18 +91,18 @@ bool SeparateChainingHash::remove(const std::string& isbn) {
     return false;
 }
 
-const Book* SeparateChainingHash::findByISBN(const std::string& isbn) const {
+const Book* SeparateChainingHash::findByISBN(const string& isbn) const {
     int ignored = 0;
     return findByISBN(isbn, ignored);
 }
 
 const Book* SeparateChainingHash::findByISBN(
-    const std::string& isbn, int& probesOut) const {
+    const string& isbn, int& probesOut) const {
     probesOut = 0;
     const auto& chain = buckets_[bucketIndex(isbn, capacity())];
     for (const auto& book : chain) {
-        if (probesOut == std::numeric_limits<int>::max()) {
-            throw std::overflow_error("Probe count exceeds int range.");
+        if (probesOut == numeric_limits<int>::max()) {
+            throw overflow_error("Probe count exceeds int range.");
         }
         ++probesOut;
         if (book.isbn == isbn) {
@@ -110,14 +112,14 @@ const Book* SeparateChainingHash::findByISBN(
     return nullptr;
 }
 
-void SeparateChainingHash::rehash(std::size_t newCapacity) {
+void SeparateChainingHash::rehash(size_t newCapacity) {
     if (newCapacity == capacity()) {
         return;
     }
     if (mode_ == CompressionMode::MAD && newCapacity >= HashUtils::defaultMadPrime) {
-        throw std::length_error("MAD capacity must remain smaller than p.");
+        throw length_error("MAD capacity must remain smaller than p.");
     }
-    std::vector<std::list<Book>> replacement(newCapacity);
+    vector<list<Book>> replacement(newCapacity);
     for (const auto& chain : buckets_) {
         for (const auto& book : chain) {
             replacement[bucketIndex(book.isbn, newCapacity)].push_back(book);
@@ -131,22 +133,22 @@ double SeparateChainingHash::loadFactor() const {
     return static_cast<double>(elementCount_) / static_cast<double>(capacity());
 }
 
-std::size_t SeparateChainingHash::size() const {
+size_t SeparateChainingHash::size() const {
     return elementCount_;
 }
 
-std::size_t SeparateChainingHash::capacity() const {
+size_t SeparateChainingHash::capacity() const {
     return buckets_.size();
 }
 
-std::size_t SeparateChainingHash::maxChainLength() const {
-    std::size_t maximum = 0;
+size_t SeparateChainingHash::maxChainLength() const {
+    size_t maximum = 0;
     for (const auto& chain : buckets_) {
-        maximum = std::max(maximum, chain.size());
+        maximum = max(maximum, chain.size());
     }
     return maximum;
 }
 
-std::uint64_t SeparateChainingHash::collisionCount() const {
+uint64_t SeparateChainingHash::collisionCount() const {
     return collisionCount_;
 }

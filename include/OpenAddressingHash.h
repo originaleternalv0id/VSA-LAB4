@@ -5,54 +5,56 @@
 #include <string>
 #include <vector>
 
+using namespace std;
+
 enum class EntryStatus { ACTIVE, EMPTY, DELETED };
 enum class ProbingMode { LINEAR, QUADRATIC };
 
 struct HashEntry {
-    std::string ip;
+    string ip;
     EntryStatus status = EntryStatus::EMPTY;
 };
 
 class OpenAddressingHash {
 public:
-    explicit OpenAddressingHash(std::size_t initialCapacity = 11,
+    explicit OpenAddressingHash(size_t initialCapacity = 11,
         ProbingMode mode = ProbingMode::LINEAR,
-        std::uint64_t polynomialBase = 37, bool autoResize = true);
+        uint64_t polynomialBase = 37, bool autoResize = true);
 
-    bool insert(const std::string& ip);
-    bool remove(const std::string& ip);
-    bool contains(const std::string& ip) const;
-    bool contains(const std::string& ip, int& probesOut) const;
+    bool insert(const string& ip);
+    bool remove(const string& ip);
+    bool contains(const string& ip) const;
+    bool contains(const string& ip, int& probesOut) const;
     // Common comparison metric in addition to architecture-specific slot probes.
-    bool contains(const std::string& ip, int& probesOut, int& keyComparisonsOut) const;
+    bool contains(const string& ip, int& probesOut, int& keyComparisonsOut) const;
 
-    std::size_t size() const;
-    std::size_t capacity() const;
+    size_t size() const;
+    size_t capacity() const;
     double loadFactor() const;
     double effectiveOccupancy() const;
-    std::size_t deletedCount() const;
+    size_t deletedCount() const;
     // ACTIVE and DELETED both occupy a cluster; circular boundary is included.
-    std::size_t maxClusterLength() const;
+    size_t maxClusterLength() const;
     // ACTIVE encounters during the initial scan of successful user insertions.
     // Duplicates, failed inserts and internal rehash transfers do not count.
-    std::uint64_t collisionCount() const;
+    uint64_t collisionCount() const;
 
 private:
     struct ProbeResult {
-        std::size_t index; // slots.size() means no reachable destination.
+        size_t index; // slots.size() means no reachable destination.
         bool found = false;
         int probes = 0;
         int keyComparisons = 0;
     };
 
-    ProbeResult locate(const std::string& ip, const std::vector<HashEntry>& slots) const;
-    void rehash(std::size_t newCapacity);
+    ProbeResult locate(const string& ip, const vector<HashEntry>& slots) const;
+    void rehash(size_t newCapacity);
 
-    std::vector<HashEntry> entries_;
+    vector<HashEntry> entries_;
     ProbingMode mode_;
-    std::uint64_t polynomialBase_;
+    uint64_t polynomialBase_;
     bool autoResize_;
-    std::size_t activeCount_ = 0;
-    std::size_t deletedCount_ = 0;
-    std::uint64_t collisionCount_ = 0;
+    size_t activeCount_ = 0;
+    size_t deletedCount_ = 0;
+    uint64_t collisionCount_ = 0;
 };

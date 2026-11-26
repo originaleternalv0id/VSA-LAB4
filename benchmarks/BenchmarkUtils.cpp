@@ -12,49 +12,51 @@
 #include <set>
 #include <stdexcept>
 
+using namespace std;
+
 namespace {
-void validateKeys(const std::vector<std::string>& keys) {
-    if (keys.size() > 1000000) throw std::invalid_argument("Dataset exceeds one million keys.");
-    const std::set<std::string> unique(keys.begin(), keys.end());
-    if (unique.size() != keys.size()) throw std::invalid_argument("Dataset keys must be unique.");
+void validateKeys(const vector<string>& keys) {
+    if (keys.size() > 1000000) throw invalid_argument("Dataset exceeds one million keys.");
+    const set<string> unique(keys.begin(), keys.end());
+    if (unique.size() != keys.size()) throw invalid_argument("Dataset keys must be unique.");
 }
 
-void validateCapacity(std::size_t capacity) {
-    if (capacity > static_cast<std::size_t>(std::numeric_limits<int>::max()) ||
+void validateCapacity(size_t capacity) {
+    if (capacity > static_cast<size_t>(numeric_limits<int>::max()) ||
         !HashUtils::isPrime(capacity)) {
-        throw std::invalid_argument("Benchmark capacity must be prime and fit int probes.");
+        throw invalid_argument("Benchmark capacity must be prime and fit int probes.");
     }
 }
 
 void addSample(Benchmark::SearchTotals& totals, int probes, int comparisons, int accesses) {
     if (probes < 0 || comparisons < 0 || accesses < 0) {
-        throw std::logic_error("Negative search instrumentation.");
+        throw logic_error("Negative search instrumentation.");
     }
     ++totals.queries;
-    totals.probes += static_cast<std::uint64_t>(probes);
-    totals.keyComparisons += static_cast<std::uint64_t>(comparisons);
-    totals.accesses += static_cast<std::uint64_t>(accesses);
+    totals.probes += static_cast<uint64_t>(probes);
+    totals.keyComparisons += static_cast<uint64_t>(comparisons);
+    totals.accesses += static_cast<uint64_t>(accesses);
 }
 
-void measureQuery(const SeparateChainingHash& table, const std::string& key,
+void measureQuery(const SeparateChainingHash& table, const string& key,
                   bool expected, Benchmark::SearchTotals& totals) {
     int probes = 0;
     const bool found = table.findByISBN(key, probes) != nullptr;
-    if (found != expected) throw std::logic_error("Chaining search disagrees with insertion results.");
+    if (found != expected) throw logic_error("Chaining search disagrees with insertion results.");
     addSample(totals, probes, probes, 1);
 }
 
-void measureQuery(const OpenAddressingHash& table, const std::string& key,
+void measureQuery(const OpenAddressingHash& table, const string& key,
                   bool expected, Benchmark::SearchTotals& totals) {
     int probes = 0, comparisons = 0;
     const bool found = table.contains(key, probes, comparisons);
-    if (found != expected) throw std::logic_error("Open addressing search disagrees with insertion results.");
+    if (found != expected) throw logic_error("Open addressing search disagrees with insertion results.");
     addSample(totals, probes, comparisons, probes);
 }
 
-Benchmark::ArchitectureResult makeResult(const std::string& architecture,
-    std::size_t datasetSize, std::size_t capacity, double targetLoad,
-    std::uint32_t seed, std::uint64_t base, bool chaining) {
+Benchmark::ArchitectureResult makeResult(const string& architecture,
+    size_t datasetSize, size_t capacity, double targetLoad,
+    uint32_t seed, uint64_t base, bool chaining) {
     Benchmark::ArchitectureResult row;
     row.architecture = architecture;
     row.datasetSize = datasetSize;
@@ -69,11 +71,11 @@ Benchmark::ArchitectureResult makeResult(const std::string& architecture,
     return row;
 }
 
-void finishResult(Benchmark::ArchitectureResult& row, std::size_t size,
-    std::size_t actualCapacity, std::size_t maximum, std::uint64_t collisions,
-    std::size_t deleted = 0) {
+void finishResult(Benchmark::ArchitectureResult& row, size_t size,
+    size_t actualCapacity, size_t maximum, uint64_t collisions,
+    size_t deleted = 0) {
     if (actualCapacity != row.capacity || size > row.attempted || deleted != 0) {
-        throw std::logic_error("Fixed-capacity benchmark invariant failed.");
+        throw logic_error("Fixed-capacity benchmark invariant failed.");
     }
     row.successful = size;
     row.failed = row.attempted - size;
@@ -84,7 +86,7 @@ void finishResult(Benchmark::ArchitectureResult& row, std::size_t size,
     row.deletedSlots = deleted;
 }
 
-void csvText(std::ostream& output, const std::string& value) {
+void csvText(ostream& output, const string& value) {
     output << '"';
     for (char character : value) {
         if (character == '"') output << '"';
@@ -93,12 +95,12 @@ void csvText(std::ostream& output, const std::string& value) {
     output << '"';
 }
 
-void prepareCsv(std::ostream& output) {
-    output.imbue(std::locale::classic());
-    output << std::fixed << std::setprecision(10);
+void prepareCsv(ostream& output) {
+    output.imbue(locale::classic());
+    output << fixed << setprecision(10);
 }
 
-void writeDistribution(std::ostream& output, const Benchmark::DistributionResult& row) {
+void writeDistribution(ostream& output, const Benchmark::DistributionResult& row) {
     output << row.datasetSize << ',' << row.seed << ',' << row.base << ',' << row.capacity << ',';
     csvText(output, row.compression);
     output << ',' << row.madA << ',' << row.madB << ',' << row.madP
@@ -107,7 +109,7 @@ void writeDistribution(std::ostream& output, const Benchmark::DistributionResult
            << ',' << row.maxBucketOccupancy << '\n';
 }
 
-void writeSearch(std::ostream& output, const Benchmark::SearchTotals& totals) {
+void writeSearch(ostream& output, const Benchmark::SearchTotals& totals) {
     output << ',' << totals.queries << ',' << totals.probes
            << ',' << Benchmark::average(totals.probes, totals.queries)
            << ',' << totals.keyComparisons
@@ -116,70 +118,70 @@ void writeSearch(std::ostream& output, const Benchmark::SearchTotals& totals) {
            << ',' << Benchmark::average(totals.accesses, totals.queries);
 }
 
-void checkOutput(const std::ostream& output) {
-    if (!output) throw std::runtime_error("CSV write failed.");
+void checkOutput(const ostream& output) {
+    if (!output) throw runtime_error("CSV write failed.");
 }
 }
 
 namespace Benchmark {
-std::vector<std::string> generateKeys(std::size_t count, std::uint32_t seed) {
-    if (count > 1000000) throw std::invalid_argument("Dataset exceeds one million keys.");
-    std::mt19937 generator(seed);
-    std::set<std::string> seen;
-    std::vector<std::string> keys;
+vector<string> generateKeys(size_t count, uint32_t seed) {
+    if (count > 1000000) throw invalid_argument("Dataset exceeds one million keys.");
+    mt19937 generator(seed);
+    set<string> seen;
+    vector<string> keys;
     keys.reserve(count);
     // A bounded retry budget makes even dataset generation explicitly finite.
     const auto budget = count * 4 + 100;
-    for (std::size_t attempt = 0; attempt < budget && keys.size() < count; ++attempt) {
-        std::string key = "978";
+    for (size_t attempt = 0; attempt < budget && keys.size() < count; ++attempt) {
+        string key = "978";
         for (int digit = 0; digit < 10; ++digit) {
             key += static_cast<char>('0' + generator() % 10);
         }
         if (seen.insert(key).second) keys.push_back(key); // Preserve generation order.
     }
-    if (keys.size() != count) throw std::runtime_error("Could not generate enough unique keys.");
+    if (keys.size() != count) throw runtime_error("Could not generate enough unique keys.");
     return keys;
 }
 
-std::vector<std::string> generateMissingKeys(std::size_t count,
-                                            const std::vector<std::string>& dataset) {
+vector<string> generateMissingKeys(size_t count,
+                                            const vector<string>& dataset) {
     validateKeys(dataset);
-    if (count > 1000000) throw std::invalid_argument("Too many missing queries.");
-    const std::set<std::string> existing(dataset.begin(), dataset.end());
-    std::vector<std::string> result;
+    if (count > 1000000) throw invalid_argument("Too many missing queries.");
+    const set<string> existing(dataset.begin(), dataset.end());
+    vector<string> result;
     result.reserve(count);
     // At most dataset.size() candidates can be excluded by the finite dataset.
-    for (std::size_t candidate = 0; result.size() < count; ++candidate) {
-        auto key = "missing-" + std::to_string(candidate);
+    for (size_t candidate = 0; result.size() < count; ++candidate) {
+        auto key = "missing-" + to_string(candidate);
         if (existing.count(key) == 0) result.push_back(key);
     }
     return result;
 }
 
-std::size_t targetElementCount(std::size_t capacity, double targetLoad) {
-    if (capacity == 0 || capacity > static_cast<std::size_t>(std::numeric_limits<int>::max()) ||
-        !std::isfinite(targetLoad) || targetLoad < 0 || targetLoad > 1) {
-        throw std::invalid_argument("Invalid benchmark capacity or target load.");
+size_t targetElementCount(size_t capacity, double targetLoad) {
+    if (capacity == 0 || capacity > static_cast<size_t>(numeric_limits<int>::max()) ||
+        !isfinite(targetLoad) || targetLoad < 0 || targetLoad > 1) {
+        throw invalid_argument("Invalid benchmark capacity or target load.");
     }
     // Nearest integer; exact .5 ties round upward.
-    return static_cast<std::size_t>(
-        std::floor(static_cast<long double>(capacity) * targetLoad + 0.5L));
+    return static_cast<size_t>(
+        floor(static_cast<long double>(capacity) * targetLoad + 0.5L));
 }
 
-double average(std::uint64_t total, std::size_t count) {
+double average(uint64_t total, size_t count) {
     if (count == 0) {
-        if (total != 0) throw std::invalid_argument("Nonzero total with zero samples.");
+        if (total != 0) throw invalid_argument("Nonzero total with zero samples.");
         return 0;
     }
     return static_cast<double>(total) / static_cast<double>(count);
 }
 
-DistributionResult measureDistribution(const std::vector<std::string>& keys,
-    std::size_t capacity, std::uint64_t base, CompressionMode mode, std::uint32_t seed) {
+DistributionResult measureDistribution(const vector<string>& keys,
+    size_t capacity, uint64_t base, CompressionMode mode, uint32_t seed) {
     validateKeys(keys);
     validateCapacity(capacity);
     if (mode != CompressionMode::MODULO && mode != CompressionMode::MAD) {
-        throw std::invalid_argument("Unknown compression mode.");
+        throw invalid_argument("Unknown compression mode.");
     }
     DistributionResult row;
     row.datasetSize = keys.size(); row.seed = seed; row.base = base; row.capacity = capacity;
@@ -190,8 +192,8 @@ DistributionResult measureDistribution(const std::vector<std::string>& keys,
     }
     const HashUtils::MadCompressor mad(HashUtils::defaultMadA, HashUtils::defaultMadB,
                                       HashUtils::defaultMadPrime);
-    std::set<std::uint64_t> hashes;
-    std::vector<std::size_t> buckets(capacity, 0);
+    set<uint64_t> hashes;
+    vector<size_t> buckets(capacity, 0);
     for (const auto& key : keys) {
         const auto hash = HashUtils::polynomialHash(key, base);
         hashes.insert(hash);
@@ -199,7 +201,7 @@ DistributionResult measureDistribution(const std::vector<std::string>& keys,
             ? HashUtils::moduloCompress(hash, capacity) : mad.compress(hash, capacity);
         if (buckets[index] == 0) ++row.occupiedBuckets;
         ++buckets[index];
-        row.maxBucketOccupancy = std::max(row.maxBucketOccupancy, buckets[index]);
+        row.maxBucketOccupancy = max(row.maxBucketOccupancy, buckets[index]);
     }
     row.uniqueHashes = hashes.size();
     row.rawCollisions = keys.size() - hashes.size();
@@ -207,15 +209,15 @@ DistributionResult measureDistribution(const std::vector<std::string>& keys,
     return row;
 }
 
-std::vector<ArchitectureResult> compareArchitectures(
-    const std::vector<std::string>& keys, const std::vector<std::string>& missingKeys,
-    std::size_t capacity, double targetLoad, std::uint32_t seed, std::uint64_t base) {
+vector<ArchitectureResult> compareArchitectures(
+    const vector<string>& keys, const vector<string>& missingKeys,
+    size_t capacity, double targetLoad, uint32_t seed, uint64_t base) {
     validateKeys(keys); validateKeys(missingKeys); validateCapacity(capacity);
     const auto target = targetElementCount(capacity, targetLoad);
-    if (target > keys.size()) throw std::invalid_argument("Insufficient insertion candidates.");
-    const std::set<std::string> known(keys.begin(), keys.end());
+    if (target > keys.size()) throw invalid_argument("Insufficient insertion candidates.");
+    const set<string> known(keys.begin(), keys.end());
     for (const auto& key : missingKeys) {
-        if (known.count(key) != 0) throw std::invalid_argument("Missing queries overlap the dataset.");
+        if (known.count(key) != 0) throw invalid_argument("Missing queries overlap the dataset.");
     }
     SeparateChainingHash chaining(capacity, CompressionMode::MODULO, base, false);
     OpenAddressingHash linear(capacity, ProbingMode::LINEAR, base, false);
@@ -223,8 +225,8 @@ std::vector<ArchitectureResult> compareArchitectures(
     auto chainRow = makeResult("Separate Chaining", keys.size(), capacity, targetLoad, seed, base, true);
     auto linearRow = makeResult("Linear Probing", keys.size(), capacity, targetLoad, seed, base, false);
     auto quadraticRow = makeResult("Quadratic Probing", keys.size(), capacity, targetLoad, seed, base, false);
-    std::vector<bool> chainAccepted(target), linearAccepted(target), quadraticAccepted(target);
-    for (std::size_t i = 0; i < target; ++i) {
+    vector<bool> chainAccepted(target), linearAccepted(target), quadraticAccepted(target);
+    for (size_t i = 0; i < target; ++i) {
         chainAccepted[i] = chaining.insert(Book{keys[i], "Synthetic title", "Synthetic author", true});
         linearAccepted[i] = linear.insert(keys[i]);
         quadraticAccepted[i] = quadratic.insert(keys[i]);
@@ -236,7 +238,7 @@ std::vector<ArchitectureResult> compareArchitectures(
                  linear.maxClusterLength(), linear.collisionCount(), linear.deletedCount());
     finishResult(quadraticRow, quadratic.size(), quadratic.capacity(),
                  quadratic.maxClusterLength(), quadratic.collisionCount(), quadratic.deletedCount());
-    for (std::size_t i = 0; i < target; ++i) {
+    for (size_t i = 0; i < target; ++i) {
         if (chainAccepted[i]) measureQuery(chaining, keys[i], true, chainRow.successSearch);
         if (linearAccepted[i]) measureQuery(linear, keys[i], true, linearRow.successSearch);
         if (quadraticAccepted[i]) measureQuery(quadratic, keys[i], true, quadraticRow.successSearch);
@@ -254,7 +256,7 @@ std::vector<ArchitectureResult> compareArchitectures(
     return {chainRow, linearRow, quadraticRow};
 }
 
-void writePolynomialCsv(std::ostream& output, const std::vector<DistributionResult>& rows) {
+void writePolynomialCsv(ostream& output, const vector<DistributionResult>& rows) {
     prepareCsv(output);
     output << "dataset_size,seed,polynomial_base,capacity,compression,mad_a,mad_b,mad_p,"
               "unique_raw_hashes,raw_hash_collisions,occupied_buckets,compressed_index_collisions,"
@@ -263,12 +265,12 @@ void writePolynomialCsv(std::ostream& output, const std::vector<DistributionResu
     checkOutput(output);
 }
 
-void writeCompressionCsv(std::ostream& output, const std::vector<DistributionResult>& rows) {
+void writeCompressionCsv(ostream& output, const vector<DistributionResult>& rows) {
     // Same explicit schema makes experiments A/B directly comparable.
     writePolynomialCsv(output, rows);
 }
 
-void writeLoadCsv(std::ostream& output, const std::vector<ArchitectureResult>& rows) {
+void writeLoadCsv(ostream& output, const vector<ArchitectureResult>& rows) {
     prepareCsv(output);
     output << "architecture,dataset_size,capacity,seed,polynomial_base,compression,target_load_factor,"
               "actual_load_factor,target_element_count,attempted_insertions,successful_insertions,"

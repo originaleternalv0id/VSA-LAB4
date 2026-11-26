@@ -2,10 +2,12 @@
 
 #include <string>
 
+using namespace std;
+
 // ISBN is a textual identifier: leading zeroes and separators are preserved.
 struct Book {
-    std::string isbn;
-    std::string title;
-    std::string author;
+    string isbn;
+    string title;
+    string author;
     bool isAvailable;
 };

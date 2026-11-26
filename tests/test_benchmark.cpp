@@ -12,30 +12,32 @@
 #include <string>
 #include <vector>
 
+using namespace std;
+
 namespace {
-void require(bool condition, const std::string& message = "Check failed.") {
-    if (!condition) throw std::runtime_error(message);
+void require(bool condition, const string& message = "Check failed.") {
+    if (!condition) throw runtime_error(message);
 }
 template <typename Exception, typename Function>
 void expectThrows(Function action) {
     try { action(); } catch (const Exception&) { return; }
-    throw std::runtime_error("Expected exception was not thrown.");
+    throw runtime_error("Expected exception was not thrown.");
 }
-std::vector<std::string> collidingKeys(std::size_t count) {
-    std::vector<std::string> result;
-    for (std::size_t i = 0; i < 10000 && result.size() < count; ++i) {
-        const auto key = "key-" + std::to_string(i);
+vector<string> collidingKeys(size_t count) {
+    vector<string> result;
+    for (size_t i = 0; i < 10000 && result.size() < count; ++i) {
+        const auto key = "key-" + to_string(i);
         if (HashUtils::polynomialHash(key) % 7 == 0) result.push_back(key);
     }
     require(result.size() == count);
     return result;
 }
-std::string loadCsv(const std::vector<Benchmark::ArchitectureResult>& rows) {
-    std::ostringstream output;
+string loadCsv(const vector<Benchmark::ArchitectureResult>& rows) {
+    ostringstream output;
     Benchmark::writeLoadCsv(output, rows);
     return output.str();
 }
-std::vector<Benchmark::ArchitectureResult> manualRows() {
+vector<Benchmark::ArchitectureResult> manualRows() {
     return Benchmark::compareArchitectures({"A", "H", "O"}, {"V"}, 7, 3.0 / 7);
 }
 void testReproducibleDataset() {
@@ -43,7 +45,7 @@ void testReproducibleDataset() {
 }
 void testUniqueness() {
     const auto keys = Benchmark::generateKeys();
-    require(std::set<std::string>(keys.begin(), keys.end()).size() == 10000);
+    require(set<string>(keys.begin(), keys.end()).size() == 10000);
 }
 void testDatasetSize() {
     require(Benchmark::generateKeys().size() == 10000);
@@ -55,7 +57,7 @@ void testSeedEffect() {
 void testKeyFormat() {
     for (const auto& key : Benchmark::generateKeys(100)) {
         require(key.size() == 13 && key.substr(0, 3) == "978");
-        require(std::all_of(key.begin(), key.end(), [](char c) { return c >= '0' && c <= '9'; }));
+        require(all_of(key.begin(), key.end(), [](char c) { return c >= '0' && c <= '9'; }));
     }
 }
 void testTargetCounts() {
@@ -85,7 +87,7 @@ void testBaseThirtySeven() {
     require(row.indexCollisions == 0 && row.maxBucketOccupancy == 1);
 }
 void testMadMetadataAndRawEquality() {
-    const std::vector<std::string> keys{"AB","BA","C@"};
+    const vector<string> keys{"AB","BA","C@"};
     const auto modulo = Benchmark::measureDistribution(keys, 7, 1, CompressionMode::MODULO);
     const auto mad = Benchmark::measureDistribution(keys, 7, 1, CompressionMode::MAD);
     require(mad.rawCollisions == modulo.rawCollisions && mad.indexCollisions == 2);
@@ -95,16 +97,16 @@ void testMadMetadataAndRawEquality() {
 }
 void testAverage() {
     require(Benchmark::average(10, 4) == 2.5 && Benchmark::average(0, 0) == 0);
-    expectThrows<std::invalid_argument>([] { Benchmark::average(1, 0); });
+    expectThrows<invalid_argument>([] { Benchmark::average(1, 0); });
 }
 void testMissingGeneration() {
     const auto missing = Benchmark::generateMissingKeys(3, {"missing-0", "abc"});
-    require(missing == std::vector<std::string>({"missing-1","missing-2","missing-3"}));
+    require(missing == vector<string>({"missing-1","missing-2","missing-3"}));
     require(Benchmark::generateMissingKeys(0, {}).empty());
     const auto dataset = Benchmark::generateKeys();
     const auto queries = Benchmark::generateMissingKeys(1000, dataset);
-    const std::set<std::string> known(dataset.begin(), dataset.end());
-    require(std::set<std::string>(queries.begin(), queries.end()).size() == 1000);
+    const set<string> known(dataset.begin(), dataset.end());
+    require(set<string>(queries.begin(), queries.end()).size() == 1000);
     for (const auto& key : queries) require(known.count(key) == 0);
 }
 void testFixedCapacity() {
@@ -146,7 +148,7 @@ void testQuadraticFailureAccounting() {
     require(quadratic.capacity == 7 && quadratic.attempted == 6 && quadratic.successful == 4);
     require(quadratic.failed == 2 && !quadratic.targetAchieved);
     require(quadratic.successSearch.queries == 4 && quadratic.missingSearch.probes == 4);
-    require(std::abs(quadratic.actualLoad - 4.0 / 7) < 1e-12);
+    require(abs(quadratic.actualLoad - 4.0 / 7) < 1e-12);
 }
 void testCommonSuccessfulSubset() {
     const auto rows = Benchmark::compareArchitectures(collidingKeys(6), {"missing"}, 7, 0.90);
@@ -164,36 +166,36 @@ void testAccountingIdentities() {
         require(row.successSearch.queries == row.successful && row.missingSearch.queries == 30);
         require(row.commonSearch.queries <= row.successSearch.queries);
         require(row.targetAchieved == (row.successful == row.targetCount));
-        require(std::abs(row.actualLoad - static_cast<double>(row.successful) / 101) < 1e-12);
+        require(abs(row.actualLoad - static_cast<double>(row.successful) / 101) < 1e-12);
     }
 }
 void testCsvStructure() {
     const auto csv = loadCsv(manualRows());
-    std::istringstream input(csv);
-    std::string line;
-    require(static_cast<bool>(std::getline(input, line)));
+    istringstream input(csv);
+    string line;
+    require(static_cast<bool>(getline(input, line)));
     require(line.find("architecture,dataset_size,capacity,seed") == 0);
-    require(line.find("common_successful_total_key_comparisons") != std::string::npos);
-    require(std::count(line.begin(), line.end(), ',') == 39);
+    require(line.find("common_successful_total_key_comparisons") != string::npos);
+    require(count(line.begin(), line.end(), ',') == 39);
     int rows = 0;
-    while (std::getline(input, line)) {
-        require(std::count(line.begin(), line.end(), ',') == 39);
+    while (getline(input, line)) {
+        require(count(line.begin(), line.end(), ',') == 39);
         ++rows;
     }
     require(rows == 3);
 }
 void testDistributionCsv() {
     const auto row = Benchmark::measureDistribution({"A","H","O"}, 7, 37, CompressionMode::MODULO);
-    std::ostringstream polynomial, compression;
+    ostringstream polynomial, compression;
     Benchmark::writePolynomialCsv(polynomial, {row});
     Benchmark::writeCompressionCsv(compression, {row});
     require(polynomial.str() == compression.str());
-    require(polynomial.str().find("3,42,37,7,\"MODULO\",0,0,0,3,0,1,2,3\n") != std::string::npos);
+    require(polynomial.str().find("3,42,37,7,\"MODULO\",0,0,0,3,0,1,2,3\n") != string::npos);
 }
 void testCsvEscaping() {
     auto rows = manualRows();
     rows[0].architecture = "A,\"B\"";
-    require(loadCsv(rows).find("\"A,\"\"B\"\"\"") != std::string::npos);
+    require(loadCsv(rows).find("\"A,\"\"B\"\"\"") != string::npos);
 }
 void testIdenticalConfigurations() {
     const auto keys = Benchmark::generateKeys(50);
@@ -204,7 +206,7 @@ void testIdenticalConfigurations() {
 void testDeterministicMeasurements() {
     const auto first = Benchmark::generateKeys(100);
     const auto second = Benchmark::generateKeys(100);
-    std::ostringstream a, b;
+    ostringstream a, b;
     for (const auto base : {1ULL, 37ULL}) {
         Benchmark::writePolynomialCsv(a, {Benchmark::measureDistribution(first, 101, base, CompressionMode::MODULO)});
         Benchmark::writePolynomialCsv(b, {Benchmark::measureDistribution(second, 101, base, CompressionMode::MODULO)});
@@ -212,18 +214,18 @@ void testDeterministicMeasurements() {
     require(a.str() == b.str());
 }
 void testInvalidInputs() {
-    expectThrows<std::invalid_argument>([] { Benchmark::generateKeys(1000001); });
-    expectThrows<std::invalid_argument>([] { Benchmark::targetElementCount(0, 0.5); });
-    expectThrows<std::invalid_argument>([] { Benchmark::targetElementCount(7, -0.1); });
-    expectThrows<std::invalid_argument>([] { Benchmark::targetElementCount(7, 1.1); });
-    expectThrows<std::invalid_argument>([] { Benchmark::targetElementCount(7, std::numeric_limits<double>::quiet_NaN()); });
-    expectThrows<std::invalid_argument>([] { Benchmark::targetElementCount(7, std::numeric_limits<double>::infinity()); });
-    expectThrows<std::invalid_argument>([] { Benchmark::measureDistribution({"x","x"}, 7, 37, CompressionMode::MODULO); });
-    expectThrows<std::invalid_argument>([] { Benchmark::measureDistribution({"x"}, 4, 37, CompressionMode::MODULO); });
-    expectThrows<std::invalid_argument>([] { Benchmark::measureDistribution({"x"}, 7, 37, static_cast<CompressionMode>(99)); });
-    expectThrows<std::invalid_argument>([] { Benchmark::compareArchitectures({"x"}, {}, 7, 0.9); });
-    expectThrows<std::invalid_argument>([] { Benchmark::compareArchitectures({"x"}, {"x"}, 7, 0.1); });
-    expectThrows<std::invalid_argument>([] { Benchmark::compareArchitectures({"x"}, {"m","m"}, 7, 0.1); });
+    expectThrows<invalid_argument>([] { Benchmark::generateKeys(1000001); });
+    expectThrows<invalid_argument>([] { Benchmark::targetElementCount(0, 0.5); });
+    expectThrows<invalid_argument>([] { Benchmark::targetElementCount(7, -0.1); });
+    expectThrows<invalid_argument>([] { Benchmark::targetElementCount(7, 1.1); });
+    expectThrows<invalid_argument>([] { Benchmark::targetElementCount(7, numeric_limits<double>::quiet_NaN()); });
+    expectThrows<invalid_argument>([] { Benchmark::targetElementCount(7, numeric_limits<double>::infinity()); });
+    expectThrows<invalid_argument>([] { Benchmark::measureDistribution({"x","x"}, 7, 37, CompressionMode::MODULO); });
+    expectThrows<invalid_argument>([] { Benchmark::measureDistribution({"x"}, 4, 37, CompressionMode::MODULO); });
+    expectThrows<invalid_argument>([] { Benchmark::measureDistribution({"x"}, 7, 37, static_cast<CompressionMode>(99)); });
+    expectThrows<invalid_argument>([] { Benchmark::compareArchitectures({"x"}, {}, 7, 0.9); });
+    expectThrows<invalid_argument>([] { Benchmark::compareArchitectures({"x"}, {"x"}, 7, 0.1); });
+    expectThrows<invalid_argument>([] { Benchmark::compareArchitectures({"x"}, {"m","m"}, 7, 0.1); });
 }
 void testEmptyMeasurements() {
     const auto distribution = Benchmark::measureDistribution({}, 7, 37, CompressionMode::MODULO);
@@ -248,8 +250,8 @@ void testDistributionMatchesChaining() {
     }
 }
 void testOutputFailure() {
-    std::ostream broken(nullptr);
-    expectThrows<std::runtime_error>([&] { Benchmark::writeLoadCsv(broken, manualRows()); });
+    ostream broken(nullptr);
+    expectThrows<runtime_error>([&] { Benchmark::writeLoadCsv(broken, manualRows()); });
 }
 struct TestCase { const char* name; void (*run)(); };
 }
@@ -273,11 +275,11 @@ int main() {
     };
     int failures = 0;
     for (const auto& test : cases) {
-        try { test.run(); std::cout << "[PASS] " << test.name << '\n'; }
-        catch (const std::exception& error) { ++failures; std::cerr << "[FAIL] " << test.name << ": " << error.what() << '\n'; }
-        catch (...) { ++failures; std::cerr << "[FAIL] " << test.name << ": unknown exception\n"; }
+        try { test.run(); cout << "[PASS] " << test.name << '\n'; }
+        catch (const exception& error) { ++failures; cerr << "[FAIL] " << test.name << ": " << error.what() << '\n'; }
+        catch (...) { ++failures; cerr << "[FAIL] " << test.name << ": unknown exception\n"; }
     }
     const auto count = sizeof(cases) / sizeof(cases[0]);
-    std::cout << count - static_cast<std::size_t>(failures) << '/' << count << " tests passed.\n";
+    cout << count - static_cast<size_t>(failures) << '/' << count << " tests passed.\n";
     return failures == 0 ? 0 : 1;
 }
