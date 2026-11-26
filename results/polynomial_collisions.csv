@@ -1,0 +1,3 @@
+dataset_size,seed,polynomial_base,capacity,compression,mad_a,mad_b,mad_p,unique_raw_hashes,raw_hash_collisions,occupied_buckets,compressed_index_collisions,maximum_bucket_occupancy
+10000,42,1,10007,"MODULO",0,0,0,65,9935,65,9935,442
+10000,42,37,10007,"MODULO",0,0,0,10000,0,6286,3714,6

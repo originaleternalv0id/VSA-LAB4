@@ -1,0 +1,15 @@
+﻿Benchmark run (Asia/Baku): 2026-11-26 04:31:28 +04:00
+Computer: LENOVO 83GS
+CPU: 12th Gen Intel(R) Core(TM) i5-12450HX
+Physical cores: 8
+Logical processors: 12
+Physical RAM reported by Windows: 23.71 GiB
+Operating system: Microsoft Windows 11 Home, 25H2, 64-bit, build 26200.9974
+Compiler: Microsoft Visual C++ 19.51.36260.0 (toolset 14.51.36231)
+Windows SDK: 10.0.26100.0
+CMake: 4.5.0 (portable)
+Generator: Visual Studio 18 2026
+Configuration: Release, x64, C++17
+Benchmark command: .\build\Release\benchmark.exe results
+Dataset: 10,000 unique keys, seed 42, fixed capacity 10,007
+Metrics: collisions, chain/cluster lengths and search probes
