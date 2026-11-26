@@ -40,7 +40,6 @@ C++ dilində həş cədvəllərinin qurulması, kolliziyaların həlli və yük 
 | `include/` | Başlıq faylları |
 | `tests/` | Avtomatlaşdırılmış testlər |
 | `results/` | Təcrübi nəticələr |
-| `screenshots/` | İcra görüntüləri |
 | `main.cpp` | Əsas proqram və konsol menyusu |
 | `CMakeLists.txt` | Build konfiqurasiyası |
 
@@ -56,11 +55,7 @@ C++ dilində həş cədvəllərinin qurulması, kolliziyaların həlli və yük 
 Təcrübi nəticələr `results/` qovluğunda CSV formatında saxlanılır.
 
 ## İcra görüntüləri
-
-### Task 1 — Separate Chaining
-
-### Task 2 — Open Addressing
-
-### Task 3 — Empirik performans analizi
-
-### Avtomatlaşdırılmış testlər
+## Task 1 — Separate Chaining
+## Task 2 — Open Addressing
+## Task 3 — Empirik performans analizi
+## Avtomatlaşdırılmış testlər
